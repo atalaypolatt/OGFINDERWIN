@@ -1,0 +1,2398 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <script>
+    try {
+      if (localStorage.getItem("pair-theme") === "win98") document.documentElement.classList.add("theme-win98");
+    } catch (error) {}
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Pair Arama</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10130e;
+      --panel: #181d15;
+      --panel-2: #20261c;
+      --line: #31382a;
+      --text: #e7eddf;
+      --muted: #8d967f;
+      --accent: #d2f25c;
+      --ink: #17200a;
+      --warn: #f0c36a;
+      --warn-bg: #2a2416;
+      --stonk: #8ec8ff;
+      --otc: #f0a35e;
+      --pump: #ff8fab;
+    }
+    * { box-sizing: border-box; }
+    html { min-height: 100%; }
+    body {
+      margin: 0;
+      min-height: 100%;
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(1600px 1100px at 0% -12%, rgba(210, 242, 92, 0.09), transparent 74%),
+        radial-gradient(1300px 1000px at 100% -10%, rgba(255, 143, 171, 0.06), transparent 72%);
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      color: var(--text);
+      font: 15px/1.45 "Segoe UI", sans-serif;
+    }
+    main { width: 100%; margin: 0 auto; padding: 16px 24px 64px; }
+    form {
+      margin-top: 12px;
+      background: linear-gradient(180deg, #1b2117 0%, #141910 100%);
+      border: 1px solid #343c2c;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    form button, form select, .box-label span, .filter-label {
+      font-family: Bahnschrift, "Segoe UI Variable Display", "Segoe UI", sans-serif;
+    }
+    .search {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 18px;
+      padding: 16px 14px 14px 18px;
+      border-bottom: 1px solid #2a3224;
+    }
+    .tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0;
+      border: 0;
+    }
+    .pair-search {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid #2a3224;
+    }
+    input, select, button { font: inherit; color: inherit; }
+    form button, form select, form input, .pair-row, .expand {
+      transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+    }
+    .pair-row:hover, .expand:hover { border-color: #4c5640; }
+    button.primary:active { transform: translateY(1px); }
+    input[type="search"], form select {
+      background: transparent;
+      border: 0;
+      border-radius: 8px;
+      padding: 11px 14px;
+      outline: none;
+    }
+    input::placeholder { color: #66705b; }
+    form select {
+      appearance: none;
+      padding-right: 28px;
+      color: #e7eddf;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.2 6 6.2 11 1.2' fill='none' stroke='%238d967f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+    }
+    .tools button:focus-visible, .tools select:focus-visible, .controls button:focus-visible, .controls select:focus-visible {
+      outline: 2px solid rgba(210, 242, 92, 0.4);
+      outline-offset: 2px;
+    }
+    #q:focus-visible { outline: none; }
+    #field { display: none; }
+    .box-label.query { padding: 0; }
+    .box-label.query input {
+      font-size: 17px;
+      letter-spacing: -0.02em;
+      padding-top: 4px;
+    }
+    .seg {
+      display: flex;
+      padding: 3px;
+      gap: 2px;
+      background: #0e120c;
+      border: 1px solid #2a3224;
+      border-radius: 9px;
+    }
+    .seg button {
+      border-radius: 6px;
+      padding: 6px 11px;
+      font-size: 13px;
+      color: #8b947e;
+    }
+    .seg button[aria-pressed="true"] {
+      background: #242c1c;
+      color: #f4f7ee;
+      box-shadow: none;
+    }
+    #near, #similar, #case {
+      min-width: 40px;
+      padding: 7px 10px;
+      font-size: 13px;
+      border-radius: 8px;
+    }
+    #near[aria-pressed="true"], #similar[aria-pressed="true"], #case[aria-pressed="true"] {
+      background: rgba(210, 242, 92, 0.14);
+      color: #e7ff8a;
+      box-shadow: none;
+    }
+    #refresh.busy svg { animation: refresh-spin 0.7s linear infinite; }
+    @keyframes refresh-spin { to { transform: rotate(360deg); } }
+    .box-label {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 2px;
+      min-width: 0;
+      padding: 10px 18px 12px;
+      background: transparent;
+      border-radius: 0;
+      color: #7d8770;
+    }
+    .box-label + .box-label { border-left: 1px solid #2a3224; }
+    .box-label span {
+      font-size: 10px;
+      font-weight: 650;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #8b947e;
+    }
+    .box-label input {
+      width: 100%;
+      padding: 2px 0 0;
+      font-size: 15px;
+      background: transparent;
+    }
+    .box-label:focus-within span { color: var(--accent); }
+    button {
+      background: transparent;
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    form button { color: #a3ad94; }
+    .search button:hover:not(.primary):not([aria-pressed="true"]),
+    .controls button:hover:not([aria-pressed="true"]),
+    form select:hover { color: #f4f7ee; }
+    button.primary {
+      background: var(--accent);
+      color: var(--ink);
+      font-weight: 700;
+      min-height: 36px;
+      padding-inline: 16px;
+    }
+    button.primary:hover { background: #dff77a; color: var(--ink); }
+    button:disabled { opacity: 0.55; cursor: wait; }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin: 0;
+      padding: 8px 10px;
+      align-items: center;
+      border-bottom: 1px solid #2a3224;
+    }
+    .controls:last-child { border-bottom: 0; }
+    .controls button, .controls select {
+      border-radius: 8px;
+      background: transparent;
+      border: 0;
+      padding: 7px 10px;
+      font-size: 13px;
+    }
+    .controls select { padding-right: 28px; }
+    #platforms button, #fee-filters button, #photo-similar {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+    #platforms button::before, #fee-filters button::before, #photo-similar::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 1px;
+      box-shadow: inset 0 0 0 1px #5d6754;
+    }
+    #platforms button[aria-pressed="true"],
+    #fee-filters button[aria-pressed="true"],
+    #photo-similar[aria-pressed="true"] {
+      background: transparent;
+      color: #f4f7ee;
+      box-shadow: none;
+    }
+    #platforms button[aria-pressed="true"]::before,
+    #fee-filters button[aria-pressed="true"]::before,
+    #photo-similar[aria-pressed="true"]::before {
+      background: var(--accent);
+      box-shadow: none;
+    }
+    #sort { margin-left: auto; display: flex; gap: 2px; }
+    #sort button[aria-pressed="true"] {
+      background: rgba(210, 242, 92, 0.14);
+      color: #e7ff8a;
+    }
+    .platforms { display: flex; flex-wrap: wrap; gap: 2px; }
+    .filter-label {
+      color: #7d8770;
+      font-size: 10px;
+      font-weight: 650;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 0 8px;
+    }
+    .date-field {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #8b947e;
+      font-family: Bahnschrift, "Segoe UI Variable Display", "Segoe UI", sans-serif;
+      font-size: 13px;
+    }
+    .date-field input {
+      background: #10150d;
+      color: #f4f7ee;
+      border: 1px solid #2a3224;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font: inherit;
+      color-scheme: dark;
+    }
+    #x-account { width: 11em; }
+    #pair-btn, #charity-btn { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #pair-q, #charity-q {
+      background: #10150d;
+      border: 1px solid #2a3224;
+      border-radius: 8px;
+    }
+    .legend {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 4px 8px;
+      margin: 0;
+      padding: 6px 8px;
+      background: #141910;
+      border: 1px solid #343c2c;
+      border-radius: 12px;
+      color: #c5cdb8;
+    }
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 8px;
+      font-family: Bahnschrift, "Segoe UI Variable Display", "Segoe UI", sans-serif;
+      font-size: 13px;
+    }
+    .legend .legend-chips {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-self: start;
+      gap: 4px 2px;
+      min-width: 0;
+      padding: 0;
+    }
+    .legend .px {
+      justify-self: end;
+      margin-left: 0;
+      gap: 6px 14px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      min-width: 0;
+    }
+    .legend .px span {
+      padding: 0;
+      gap: 6px;
+      color: #8b947e;
+      font-weight: 650;
+    }
+    .legend .px strong {
+      color: #f4f7ee;
+      font-size: 13px;
+      font-weight: 650;
+      line-height: 1.45;
+    }
+    .legend .px .dir {
+      font-style: normal;
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 700;
+    }
+    .legend .px .dir.up { color: #47e07a; }
+    .legend .px .dir.down { color: #ff5c6c; }
+    .legend .px a.px-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0;
+      color: #8b947e;
+      font-weight: 650;
+      text-decoration: none;
+    }
+    .legend .px a.px-link:hover { color: #f4f7ee; text-decoration: none; }
+    .legend .legend-tools {
+      justify-self: center;
+      padding: 0;
+      gap: 2px;
+    }
+    .legend .legend-tools button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border-radius: 8px;
+      color: #8b947e;
+    }
+    .legend .legend-tools button:hover { color: #f4f7ee; background: #242c1c; }
+    .legend .legend-tools svg { width: 16px; height: 16px; display: block; }
+    #theme {
+      font-family: Bahnschrift, "Segoe UI Variable Display", "Segoe UI", sans-serif;
+      font-size: 12px;
+      font-weight: 650;
+      letter-spacing: 0.04em;
+      color: #8b947e;
+      padding: 4px 8px;
+      border-radius: 8px;
+      line-height: 1;
+    }
+    #theme:hover { color: #f4f7ee; background: #242c1c; }
+    #theme:focus-visible { outline: 2px solid rgba(210, 242, 92, 0.4); outline-offset: 2px; }
+    #theme span { padding: 0; gap: 0; letter-spacing: inherit; }
+    #theme .theme-on { display: none; }
+    .swatch {
+      width: 16px;
+      height: 8px;
+      border-radius: 2px;
+      background: #159447;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.28);
+    }
+    .swatch.stonk { background: #1a3d7c; }
+    .swatch.otc { background: #ffffff; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18); }
+    .swatch.cashback { background: #f0c400; }
+    .swatch.creator { background: #111111; box-shadow: inset 0 0 0 1px #6a6254; }
+    .swatch.social { background: #ff4d8d; }
+    .swatch.pair { background: #e11d2e; }
+    .panel {
+      margin-top: 8px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .panel[hidden] { display: none; }
+    .panel:not([hidden]) { animation: rise 160ms ease; }
+    #pair-q { width: 100%; }
+    #pair-list { margin-top: 8px; max-height: 380px; overflow: auto; }
+    .group-label, .pair-row, .note, .status {
+      border-bottom: 1px solid var(--line);
+    }
+    .group-label {
+      position: sticky;
+      top: 0;
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 6px 8px;
+    }
+    .pair-row, .expand {
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      border-radius: 0;
+      padding: 8px;
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+    .pair-row small, .expand { color: var(--muted); }
+    .pair-row.on { background: #2a3318; }
+    .status {
+      margin-top: 16px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--warn-bg);
+      color: var(--warn);
+      transition: background-color 140ms ease, color 140ms ease;
+    }
+    .status.quiet { background: var(--panel); color: var(--muted); }
+    #results {
+      list-style: none;
+      margin: 18px 0 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 16px;
+    }
+    #results.in { animation: rise 160ms ease; }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: none; }
+    }
+    .card {
+      position: relative;
+      background: #159447;
+      border-radius: 18px;
+      padding: 22px;
+      color: #1c160c;
+      transition: transform 160ms ease;
+    }
+    .frame-marks {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .frame-mark {
+      position: absolute;
+      top: 0;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      white-space: nowrap;
+      padding: 0 3px;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 0.01em;
+    }
+    .frame-mark.bottom { top: auto; bottom: 0; }
+    .frame-mark.side {
+      top: 22px;
+      bottom: 22px;
+      left: 0;
+      width: 22px;
+      height: auto;
+      writing-mode: vertical-lr;
+      padding: 4px 0;
+    }
+    .frame-mark.side.right { left: auto; right: 0; }
+    .card:hover {
+      transform: translateY(-4px);
+      z-index: 2;
+    }
+    .card-inner {
+      background: #f6f1e4;
+      border-radius: 13px;
+      padding: 8px;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .card-top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+    .card-title { min-width: 0; }
+    .card-name, .card-ticker-symbol {
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: #1c160c;
+    }
+    .card-name {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-ticker {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .card-ticker-label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #6a5b3a;
+    }
+    .hp { text-align: right; font-size: 10px; letter-spacing: 0.08em; color: #6a5b3a; }
+    .hp b { display: block; font-size: 18px; letter-spacing: 0; color: #1c160c; }
+    .stage { font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: #6a5b3a; }
+    .art {
+      position: relative;
+      background: #ddd4c2;
+      border: 3px solid #ead9a4;
+      border-radius: 8px;
+      aspect-ratio: 5 / 4;
+      overflow: hidden;
+    }
+    .art img, .art .fallback { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .art img { transition: opacity 180ms ease; cursor: pointer; }
+    #photo-preview {
+      width: 28px;
+      height: 28px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #343c2c;
+    }
+    .art img.waiting { opacity: 0; }
+    .art .fallback { display: grid; place-items: center; font-size: 42px; font-weight: 800; color: #6d6456; background: #ddd4c2; }
+    .stamp {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: #17200a;
+      color: #d2f25c;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 3px 7px;
+      border-radius: 999px;
+    }
+    .attack {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 2px 8px;
+      padding-top: 6px;
+      border-top: 1px solid #e4d9c4;
+    }
+    .attack .label { font-weight: 800; font-size: 13px; }
+    .attack .value { font-weight: 800; font-size: 13px; }
+    a.attack-link { color: inherit; text-decoration: none; font-weight: 800; font-size: 13px; }
+    a.attack-link:hover, a.chip:hover { text-decoration: underline; }
+    .attack .detail { grid-column: 1 / -1; color: #6a5b3a; font-size: 12px; }
+    .chips { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px; }
+    .chip { background: #efe4cc; border-radius: 999px; padding: 1px 6px; font-size: 11px; color: inherit; text-decoration: none; }
+    .chip.hit { background: #17200a; color: #d2f25c; }
+    a.chip:hover { text-decoration: underline; }
+    .mint-copy {
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      padding: 0;
+      cursor: pointer;
+      text-align: left;
+    }
+    .mint-copy:hover { color: #1c160c; }
+    .card-foot { margin-top: auto; display: flex; flex-direction: column; gap: 6px; }
+    .foot-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: #6d6456;
+      font-family: Consolas, "Cascadia Mono", monospace;
+      font-size: 11px;
+    }
+    .jumps { display: flex; flex-wrap: wrap; gap: 4px; }
+    .card .jumps a {
+      color: #1c160c;
+      text-decoration: none;
+      border: 1px solid #c9b48a;
+      background: #fffaf0;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .card .jumps a.axiom { border-color: #6a8f12; }
+    .card .jumps a.pf { border-color: #c45b78; }
+    @media (max-width: 720px) {
+      .search { grid-template-columns: 1fr; gap: 12px; }
+      .tools { flex-wrap: wrap; }
+      #sort { margin-left: 0; }
+      .pair-search { grid-template-columns: 1fr; }
+      .box-label + .box-label { border-left: 0; border-top: 1px solid #2a3224; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+      .card:hover { transform: none; }
+    }
+    .win-title { display: none; }
+    html.theme-win98 { color-scheme: light; }
+    html.theme-win98 body {
+      background-color: #008080;
+      background-image: none;
+      color: #000;
+      font: 13px/1.15 "Microsoft Sans Serif", "MS Sans Serif", Tahoma, sans-serif;
+    }
+    html.theme-win98 .win {
+      background: #c0c0c0;
+      padding: 3px;
+      border: 0;
+      box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px #808080, inset 2px 2px #fff, 2px 2px 0 #004040;
+    }
+    html.theme-win98 .win-title {
+      display: block;
+      height: 22px;
+      margin: 0 0 3px;
+      padding: 0 4px 0 6px;
+      background: #000080;
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      line-height: 22px;
+    }
+    html.theme-win98 form,
+    html.theme-win98 .legend,
+    html.theme-win98 .panel,
+    html.theme-win98 .status,
+    html.theme-win98 .status.quiet {
+      background: #c0c0c0;
+      color: #000;
+      border-radius: 0;
+    }
+    html.theme-win98 form { margin-top: 0; border: 0; }
+    html.theme-win98 .legend { border: 0; padding: 4px 2px 6px; }
+    html.theme-win98 .search,
+    html.theme-win98 .controls,
+    html.theme-win98 .pair-search { border-bottom-color: #808080; }
+    html.theme-win98 .legend span,
+    html.theme-win98 .legend .px span,
+    html.theme-win98 .legend .px strong,
+    html.theme-win98 .filter-label,
+    html.theme-win98 .box-label,
+    html.theme-win98 .box-label span,
+    html.theme-win98 .date-field,
+    html.theme-win98 form button,
+    html.theme-win98 form select,
+    html.theme-win98 .card-ticker-label,
+    html.theme-win98 .stage,
+    html.theme-win98 .attack .detail,
+    html.theme-win98 .foot-meta,
+    html.theme-win98 .hint {
+      font-family: "Microsoft Sans Serif", "MS Sans Serif", Tahoma, sans-serif;
+      letter-spacing: 0;
+      text-transform: none;
+      font-weight: 400;
+      color: #000;
+    }
+    html.theme-win98 .legend .px strong { font-weight: 700; font-size: 13px; }
+    html.theme-win98 .legend .px .dir.up { color: #008000; }
+    html.theme-win98 .legend .px .dir.down { color: #c00000; }
+    html.theme-win98 .legend .px a.px-link,
+    html.theme-win98 .legend .px a.px-link strong,
+    html.theme-win98 .legend .px a.px-link:hover,
+    html.theme-win98 .legend .px a.px-link:hover strong {
+      color: #000;
+      text-decoration: none;
+    }
+    html.theme-win98 .box-label + .box-label { border-left-color: #808080; }
+    html.theme-win98 .box-label:focus-within span { color: #000; }
+    html.theme-win98 .box-label.query input { font-size: 13px; letter-spacing: 0; }
+    html.theme-win98 input,
+    html.theme-win98 select,
+    html.theme-win98 .date-field input,
+    html.theme-win98 #pair-q,
+    html.theme-win98 #charity-q {
+      background: #fff;
+      color: #000;
+      border-radius: 0;
+      border: 0;
+      box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080;
+      color-scheme: light;
+    }
+    html.theme-win98 input::placeholder { color: #808080; }
+    html.theme-win98 .box-label input { padding: 3px 4px; }
+    html.theme-win98 button,
+    html.theme-win98 #near,
+    html.theme-win98 #similar,
+    html.theme-win98 #case,
+    html.theme-win98 #go,
+    html.theme-win98 #pair-btn,
+    html.theme-win98 #charity-btn,
+    html.theme-win98 #photo-pick,
+    html.theme-win98 #photo-clear,
+    html.theme-win98 #photo-similar,
+    html.theme-win98 .card .jumps a {
+      border-radius: 0;
+      border: 0;
+      min-height: 0;
+      padding: 4px 12px;
+      line-height: 1.15;
+      background: #c0c0c0;
+      color: #000;
+      box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+      font-family: "Microsoft Sans Serif", "MS Sans Serif", Tahoma, sans-serif;
+    }
+    html.theme-win98 button:disabled {
+      opacity: 1;
+      color: #808080;
+      text-shadow: 1px 1px #fff;
+    }
+    html.theme-win98 button:hover,
+    html.theme-win98 .search button:hover:not(.primary):not([aria-pressed="true"]),
+    html.theme-win98 .controls button:hover:not([aria-pressed="true"]),
+    html.theme-win98 .legend .legend-tools button:hover,
+    html.theme-win98 #theme:hover,
+    html.theme-win98 button.primary:hover {
+      background: #c0c0c0;
+      color: #000;
+    }
+    html.theme-win98 button:active,
+    html.theme-win98 button[aria-pressed="true"],
+    html.theme-win98 #theme,
+    html.theme-win98 .seg button[aria-pressed="true"],
+    html.theme-win98 #near[aria-pressed="true"],
+    html.theme-win98 #similar[aria-pressed="true"],
+    html.theme-win98 #case[aria-pressed="true"],
+    html.theme-win98 #platforms button[aria-pressed="true"],
+    html.theme-win98 #fee-filters button[aria-pressed="true"],
+    html.theme-win98 #photo-similar[aria-pressed="true"],
+    html.theme-win98 #sort button[aria-pressed="true"] {
+      background: #c0c0c0;
+      color: #000;
+      border: 0;
+      padding: 5px 11px 3px 13px;
+      box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080;
+    }
+    html.theme-win98 .mint-copy {
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      color: #000;
+      padding: 0;
+    }
+    html.theme-win98 .mint-copy:hover { color: #000080; }
+    html.theme-win98 button.primary {
+      min-height: 0;
+      font-weight: 700;
+      color: #000;
+      background: #c0c0c0;
+      outline: 1px solid #000;
+      outline-offset: 1px;
+    }
+    html.theme-win98 button.primary:active { transform: none; }
+    html.theme-win98 .seg {
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      padding: 0;
+      gap: 4px;
+    }
+    html.theme-win98 #platforms button::before,
+    html.theme-win98 #fee-filters button::before,
+    html.theme-win98 #photo-similar::before {
+      border-radius: 0;
+      background: #fff;
+      box-shadow: inset 0 0 0 1px #000;
+    }
+    html.theme-win98 #platforms button[aria-pressed="true"]::before,
+    html.theme-win98 #fee-filters button[aria-pressed="true"]::before,
+    html.theme-win98 #photo-similar[aria-pressed="true"]::before {
+      background: #000;
+      box-shadow: none;
+    }
+    html.theme-win98 .legend .legend-tools button {
+      width: 26px;
+      height: 24px;
+      padding: 0;
+      border-radius: 0;
+      color: #000;
+    }
+    html.theme-win98 #theme { letter-spacing: 0; font-weight: 400; padding: 4px 8px; border-radius: 0; }
+    html.theme-win98 #theme .theme-off { display: none; }
+    html.theme-win98 #theme .theme-on { display: inline; }
+    html.theme-win98 .swatch { border-radius: 0; }
+    html.theme-win98 .panel {
+      border: 0;
+      box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px #808080, inset 2px 2px #fff, 2px 2px 0 #004040;
+    }
+    html.theme-win98 #pair-list,
+    html.theme-win98 #charity-list {
+      background: #fff;
+      border: 2px solid #808080;
+      border-color: #808080 #fff #fff #808080;
+      box-shadow: inset 1px 1px #000, inset -1px -1px #dfdfdf;
+    }
+    html.theme-win98 .pair-row,
+    html.theme-win98 .expand,
+    html.theme-win98 .group-label {
+      background: #fff;
+      color: #000;
+      border: 0;
+      border-bottom: 1px solid #d4d0c8;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    html.theme-win98 .pair-row small,
+    html.theme-win98 .expand { color: #000; }
+    html.theme-win98 .pair-row.on,
+    html.theme-win98 .pair-row.on small {
+      background: #000080;
+      color: #fff;
+    }
+    html.theme-win98 .pair-row:hover:not(.on) { background: #d4d0c8; color: #000; border-color: #d4d0c8; }
+    html.theme-win98 .group-label { background: #d4d0c8; text-transform: none; letter-spacing: 0; }
+    html.theme-win98 .status {
+      border: 0;
+      box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080;
+      background: #ffffe1;
+    }
+    html.theme-win98 .status.quiet { background: #c0c0c0; }
+    html.theme-win98 #results.in,
+    html.theme-win98 .panel:not([hidden]) { animation: none; }
+    html.theme-win98 .card,
+    html.theme-win98 .frame-marks,
+    html.theme-win98 .card-inner,
+    html.theme-win98 .art,
+    html.theme-win98 .stamp,
+    html.theme-win98 .chip,
+    html.theme-win98 #photo-preview { border-radius: 0; }
+    html.theme-win98 .card {
+      transition: none;
+      box-shadow: 2px 2px 0 #004848;
+    }
+    html.theme-win98 .card:hover { transform: none; }
+    html.theme-win98 .card-inner {
+      background: #c0c0c0;
+      color: #000;
+      border: 0;
+      box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px #808080, inset 2px 2px #fff;
+    }
+    html.theme-win98 .card-top {
+      background: #000080;
+      color: #fff;
+      margin: -8px -8px 2px;
+      padding: 4px 6px 5px;
+    }
+    html.theme-win98 .card-name,
+    html.theme-win98 .card-ticker-symbol,
+    html.theme-win98 .hp,
+    html.theme-win98 .hp b { color: #fff; letter-spacing: 0; }
+    html.theme-win98 .card-ticker { margin-top: 2px; }
+    html.theme-win98 .card-ticker-label { color: #d6d6f5; }
+    html.theme-win98 .art {
+      background: #fff;
+      border: 0;
+      box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080;
+    }
+    html.theme-win98 .art .fallback { background: #fff; color: #000; }
+    html.theme-win98 .stamp {
+      background: #ffff00;
+      color: #000;
+      border: 1px solid #000;
+      font-weight: 700;
+    }
+    html.theme-win98 .attack { border-top-color: #808080; }
+    html.theme-win98 .attack .label,
+    html.theme-win98 .attack .value,
+    html.theme-win98 .hp b { font-weight: 700; }
+    html.theme-win98 a.attack-link { color: #000080; text-decoration: underline; }
+    html.theme-win98 .chip {
+      background: #c0c0c0;
+      color: #000;
+      border: 0;
+      border-radius: 0;
+      box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+      padding: 1px 6px;
+    }
+    html.theme-win98 .chip.hit {
+      background: #000080;
+      color: #fff;
+      border-color: #000;
+      box-shadow: none;
+    }
+    html.theme-win98 .card .jumps a { font-weight: 400; }
+    html.theme-win98 .card .jumps a.axiom,
+    html.theme-win98 .card .jumps a.pf { border-color: #fff #000 #000 #fff; }
+    html.theme-win98 .foot-meta { font-family: "Microsoft Sans Serif", "MS Sans Serif", Tahoma, sans-serif; }
+    html.theme-win98 #photo-preview {
+      border: 2px solid #808080;
+      border-color: #808080 #fff #fff #808080;
+    }
+    html.theme-win98 button:focus-visible,
+    html.theme-win98 input:focus-visible,
+    html.theme-win98 select:focus-visible,
+    html.theme-win98 #q:focus-visible,
+    html.theme-win98 #theme:focus-visible {
+      outline: 1px dotted #000;
+      outline-offset: -4px;
+    }
+    html.theme-win98 button,
+    html.theme-win98 input,
+    html.theme-win98 select,
+    html.theme-win98 .card,
+    html.theme-win98 form button,
+    html.theme-win98 form select,
+    html.theme-win98 form input,
+    html.theme-win98 .pair-row,
+    html.theme-win98 .expand { transition: none; }
+    html.theme-win98 button,
+    html.theme-win98 input,
+    html.theme-win98 select,
+    html.theme-win98 .legend span,
+    html.theme-win98 .filter-label,
+    html.theme-win98 .box-label,
+    html.theme-win98 .box-label span,
+    html.theme-win98 .date-field,
+    html.theme-win98 .win-title,
+    html.theme-win98 .card-name,
+    html.theme-win98 .card-ticker-symbol,
+    html.theme-win98 .card-ticker-label,
+    html.theme-win98 .hp,
+    html.theme-win98 .hp b,
+    html.theme-win98 .legend .px,
+    html.theme-win98 .legend .px a,
+    html.theme-win98 .legend .px strong,
+    html.theme-win98 .stage,
+    html.theme-win98 .frame-mark,
+    html.theme-win98 .attack .label,
+    html.theme-win98 .attack .value,
+    html.theme-win98 .attack .detail,
+    html.theme-win98 a.attack-link,
+    html.theme-win98 .chip,
+    html.theme-win98 .stamp,
+    html.theme-win98 .foot-meta,
+    html.theme-win98 .status,
+    html.theme-win98 .pair-row,
+    html.theme-win98 .group-label,
+    html.theme-win98 .hint,
+    html.theme-win98 .controls button,
+    html.theme-win98 .seg button,
+    html.theme-win98 #q,
+    html.theme-win98 #ticker-q,
+    html.theme-win98 #title-q,
+    html.theme-win98 #near,
+    html.theme-win98 #similar,
+    html.theme-win98 #case,
+    html.theme-win98 #go,
+    html.theme-win98 #theme,
+    html.theme-win98 #theme span,
+    html.theme-win98 #pair-btn,
+    html.theme-win98 #charity-btn,
+    html.theme-win98 #photo-similar,
+    html.theme-win98 #x-account,
+    html.theme-win98 #pair-q,
+    html.theme-win98 #charity-q {
+      font-family: "Microsoft Sans Serif", "MS Sans Serif", Tahoma, sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+    html.theme-win98 .win-title,
+    html.theme-win98 .card-name,
+    html.theme-win98 .card-ticker-symbol,
+    html.theme-win98 .hp b,
+    html.theme-win98 .legend .px strong,
+    html.theme-win98 .stamp,
+    html.theme-win98 #go {
+      font-weight: 700;
+    }
+    html.theme-win98 .art .fallback {
+      font-family: "Microsoft Sans Serif", "MS Sans Serif", Tahoma, sans-serif;
+      font-size: 42px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    @media (max-width: 720px) {
+      html.theme-win98 .box-label + .box-label { border-left: 0; border-top: 1px solid #808080; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="win">
+    <div class="win-title">Pair Arama</div>
+    <header>
+      <div class="legend" aria-label="Kart renkleri">
+        <span class="legend-chips">
+          <button type="button" id="theme" aria-pressed="false" title="Eski Windows görünümü" aria-label="Eski Windows görünümü"><span class="theme-off">98</span><span class="theme-on">şimdi</span></button>
+          <span><i class="swatch"></i>Pump.fun</span>
+          <span><i class="swatch stonk"></i>StonkFun</span>
+          <span><i class="swatch otc"></i>OTC</span>
+          <span><i class="swatch cashback"></i>cashback</span>
+          <span><i class="swatch creator"></i>creator</span>
+          <span><i class="swatch social"></i>GitHub / X</span>
+          <span><i class="swatch pair"></i>SOL dışı pair</span>
+        </span>
+        <span class="legend-tools">
+          <button type="button" id="home" aria-label="Anasayfa" title="Anasayfa">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 11.2 12 4l8 7.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7 10.2V20h10v-9.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button type="button" id="refresh" aria-label="Yenile" title="Yenile">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M21 12a9 9 0 1 1-2.6-6.3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M21 3v6h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </span>
+        <span class="px" aria-label="ANT, SOL ve BTC fiyatı">
+          <span title="Market cap">ANT <strong id="ant-px">—</strong></span>
+          <a class="px-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:SOLUSDT" target="_blank" rel="noreferrer" title="SOLUSDT grafiği">SOL <strong id="sol-px">—</strong><i id="sol-dir" class="dir" hidden></i></a>
+          <a class="px-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:BTCUSDT" target="_blank" rel="noreferrer" title="BTCUSDT grafiği">BTC <strong id="btc-px">—</strong><i id="btc-dir" class="dir" hidden></i></a>
+        </span>
+      </div>
+    </header>
+    <form id="form">
+      <div class="search">
+        <label class="box-label query" for="q">
+          <span>arama</span>
+          <input id="q" type="search" placeholder="ticker veya coin adı" autocomplete="off" autofocus>
+        </label>
+        <div class="tools">
+          <select id="field" aria-label="Arama alanı" hidden>
+            <option value="">İkisi</option>
+            <option value="ticker">Ticker</option>
+            <option value="title">Başlık</option>
+          </select>
+          <div class="seg" id="field-seg" role="group" aria-label="Arama alanı">
+            <button type="button" data-field="" aria-pressed="true">İkisi</button>
+            <button type="button" data-field="ticker" aria-pressed="false">Ticker</button>
+            <button type="button" data-field="title" aria-pressed="false">Başlık</button>
+          </div>
+          <button type="button" id="near" aria-pressed="false">Yakın</button>
+          <button type="button" id="similar" aria-pressed="false" title="Bir harf kayması da gelir">Benzer</button>
+          <button type="button" id="case" aria-pressed="false" aria-label="Büyük küçük harf" title="Büyük küçük harf">Aa</button>
+          <button class="primary" id="go" type="submit">Ara</button>
+        </div>
+      </div>
+      <div class="pair-search">
+        <label class="box-label" for="ticker-q">
+          <span>ticker</span>
+          <input id="ticker-q" type="search" placeholder="$100 veya Auda City" autocomplete="off">
+        </label>
+        <label class="box-label" for="title-q">
+          <span>başlık</span>
+          <input id="title-q" type="search" placeholder="Audacity veya Auda City" autocomplete="off">
+        </label>
+      </div>
+      <div class="controls">
+        <div class="platforms" id="platforms">
+          <button type="button" data-platform="stonkfun" aria-pressed="true">StonkFun</button>
+          <button type="button" data-platform="otc" aria-pressed="true">OTC</button>
+          <button type="button" data-platform="pump" aria-pressed="true">Pump.fun</button>
+        </div>
+        <button type="button" id="pair-btn" aria-expanded="false">Pair: tümü</button>
+        <button type="button" id="charity-btn" aria-expanded="false">Charity: tümü</button>
+        <div id="sort" role="group" aria-label="Sıra">
+          <button type="button" data-sort="newest" aria-pressed="true">En yeni</button>
+          <button type="button" data-sort="oldest" aria-pressed="false">En eski</button>
+          <button type="button" data-sort="marketCap" aria-pressed="false">Market cap</button>
+        </div>
+      </div>
+      <div class="controls">
+        <span class="filter-label">Ödül alan</span>
+        <div class="platforms" id="fee-filters">
+          <button type="button" data-fee="cashback" aria-pressed="false">cashback</button>
+          <button type="button" data-fee="creator" aria-pressed="false">creator</button>
+          <button type="button" data-fee="paid" aria-pressed="false">paid</button>
+          <button type="button" data-fee="github" aria-pressed="false">GitHub</button>
+          <button type="button" data-fee="x" aria-pressed="false">X</button>
+        </div>
+        <label class="date-field">X hesabı
+          <input id="x-account" type="text" placeholder="@elonmusk" aria-label="X hesabı" autocomplete="off" spellcheck="false">
+        </label>
+      </div>
+      <div class="controls" id="date-row">
+        <span class="filter-label">Tarih</span>
+        <label class="date-field">başlangıç
+          <input id="date-from" type="date" aria-label="Başlangıç günü">
+          <input id="time-from" type="time" step="60" aria-label="Başlangıç saati" title="Başlangıç saati">
+        </label>
+        <label class="date-field">bitiş
+          <input id="date-to" type="date" aria-label="Bitiş günü">
+          <input id="time-to" type="time" step="60" aria-label="Bitiş saati" title="Bitiş saati">
+        </label>
+      </div>
+      <div class="controls" id="photo-row">
+        <span class="filter-label">Fotoğraf</span>
+        <button type="button" id="photo-pick">seç</button>
+        <input id="photo-file" type="file" accept="image/*" hidden>
+        <img id="photo-preview" alt="" hidden>
+        <button type="button" id="photo-clear" hidden>kaldır</button>
+        <button type="button" id="photo-similar" aria-pressed="false">Benzer</button>
+      </div>
+    </form>
+    </div>
+    <div class="panel" id="panel" hidden>
+      <input id="pair-q" type="search" placeholder="Pair ara: spcx, usdc veya kontrat adresi" autocomplete="off">
+      <div id="pair-list"></div>
+    </div>
+    <div class="panel" id="charity-panel" hidden>
+      <input id="charity-q" type="search" placeholder="Charity ara: red cross, st jude" autocomplete="off">
+      <div id="charity-list"></div>
+    </div>
+    <div id="status" class="status quiet" hidden></div>
+    <ol id="results"></ol>
+  </main>
+  <script>
+    const SOL_MINT = "So11111111111111111111111111111111111111112";
+    const SOL_NATIVE = "11111111111111111111111111111111";
+    const PLATFORM = { stonkfun: "StonkFun", otc: "OTC", pump: "Pump.fun" };
+    const GROUP_ORDER = ["Solana", "xStock", "PreStock", "Tessera", "Currency", "Leverage", "Collectibles", "Sunrise", "Backpack", "Crypto", "Custom"];
+    const platforms = new Set(["stonkfun", "otc", "pump"]);
+    let pairs = [];
+    let selectedMint = "";
+    let customOpen = false;
+    let controller = null;
+    let lastBody = null;
+    let selectedCharity = null;
+    let charityTimer = null;
+    let charityController = null;
+    let xTimer = null;
+    const feeFilters = new Set();
+    const imageHashCache = new Map();
+    const NEAR_DISTANCE = 10;
+    const NEAR_COLOR = 28;
+    let photoSample = null;
+    let photoObjectUrl = "";
+    let photoMatches = null;
+    let photoNote = "";
+    let photoSeq = 0;
+
+    const form = document.getElementById("form");
+    const q = document.getElementById("q");
+    const go = document.getElementById("go");
+    const refreshBtn = document.getElementById("refresh");
+    function sortValue() {
+      const button = document.querySelector("#sort button[aria-pressed='true']");
+      return button ? button.dataset.sort : "newest";
+    }
+    const pairBtn = document.getElementById("pair-btn");
+    const panel = document.getElementById("panel");
+    const pairQ = document.getElementById("pair-q");
+    const pairList = document.getElementById("pair-list");
+    const charityBtn = document.getElementById("charity-btn");
+    const charityPanel = document.getElementById("charity-panel");
+    const charityQ = document.getElementById("charity-q");
+    const charityList = document.getElementById("charity-list");
+    const statusEl = document.getElementById("status");
+    const results = document.getElementById("results");
+
+    function el(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text != null) node.textContent = text;
+      return node;
+    }
+
+    function safeUrl(value) {
+      try {
+        const url = new URL(value, location.origin);
+        if (url.protocol === "https:" || url.protocol === "http:") return url.href;
+      } catch (error) {}
+      return "";
+    }
+
+    function shortMint(mint) {
+      if (!mint || mint.length < 10) return mint || "";
+      return mint.slice(0, 4) + "…" + mint.slice(-4);
+    }
+
+    function money(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return "—";
+      const abs = Math.abs(n);
+      if (abs >= 1e9) return "$" + (n / 1e9).toFixed(2) + "B";
+      if (abs >= 1e6) return "$" + (n / 1e6).toFixed(2) + "M";
+      if (abs >= 1e3) return "$" + (n / 1e3).toFixed(1) + "K";
+      if (abs >= 1) return "$" + n.toFixed(0);
+      return "$" + n.toFixed(4);
+    }
+
+    function when(ms) {
+      if (!ms) return "—";
+      return new Date(ms).toLocaleString("tr-TR", {
+        day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+      });
+    }
+
+    function setStatus(text, quiet) {
+      statusEl.hidden = !text;
+      statusEl.textContent = text || "";
+      statusEl.className = quiet ? "status quiet" : "status";
+    }
+
+    function isSolMint(mint) {
+      return mint === SOL_MINT || mint === SOL_NATIVE;
+    }
+
+    function isMintAddress(value) {
+      if (/^0x[a-fA-F0-9]{40}$/.test(value)) return true;
+      return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value);
+    }
+
+    function pairByMint(mint) {
+      if (isSolMint(mint)) return pairs.find((pair) => isSolMint(pair.mint)) || null;
+      return pairs.find((pair) => pair.mint === mint) || null;
+    }
+
+    function resolveTypedMint(value) {
+      const typed = String(value || "").trim();
+      if (!isMintAddress(typed)) return "";
+      const known = pairByMint(typed);
+      return known ? known.mint : typed;
+    }
+
+    function selectedPair() {
+      return pairByMint(selectedMint);
+    }
+
+    function paintPairButton() {
+      const pair = selectedPair();
+      pairBtn.textContent = pair
+        ? "Pair: " + pair.symbol + " · " + (pair.name || pair.category) + " · " + shortMint(pair.mint)
+        : selectedMint
+          ? "Pair: kontrat " + shortMint(selectedMint)
+          : "Pair: tümü · " + pairs.length;
+      pairBtn.setAttribute("aria-expanded", panel.hidden ? "false" : "true");
+    }
+
+    function groupOf(pair) {
+      return pair.category || "Custom";
+    }
+
+    function contractRow(known, typedMint) {
+      const mint = known ? known.mint : typedMint;
+      const button = el("button", "pair-row" + (mint === selectedMint ? " on" : ""));
+      button.type = "button";
+      if (known) {
+        button.append(el("span", "", known.symbol + " · " + (known.name || "—")));
+        button.append(el("small", "", "bu kontrat"));
+      } else {
+        button.append(el("span", "", "Bu kontrat"));
+        button.append(el("small", "", shortMint(typedMint)));
+      }
+      button.addEventListener("click", () => choose(mint));
+      return button;
+    }
+
+    function renderPairs() {
+      pairList.replaceChildren();
+      const raw = pairQ.value.trim();
+      const query = raw.toLowerCase();
+      const typedMint = isMintAddress(raw) ? raw : "";
+      const known = typedMint ? pairByMint(typedMint) : null;
+      const matched = pairs.filter((pair) => {
+        if (!query) return true;
+        const sources = (pair.sources || []).map((source) => source.platform + " " + source.category).join(" ");
+        return [pair.symbol, pair.name, pair.mint, pair.category, sources].join(" ").toLowerCase().includes(query);
+      });
+      const clear = el("button", "pair-row" + (selectedMint ? "" : " on"), "Tüm pairler");
+      clear.type = "button";
+      clear.addEventListener("click", () => choose(""));
+      pairList.append(clear);
+      if (typedMint) pairList.append(contractRow(known, typedMint));
+      else if (selectedMint && !selectedPair()) pairList.append(contractRow(null, selectedMint));
+      if (!matched.length) {
+        if (!typedMint) pairList.append(el("div", "hint", "Bu yazıya uyan pair yok."));
+        return;
+      }
+      const groups = new Map();
+      for (const pair of matched) {
+        const key = groupOf(pair);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(pair);
+      }
+      const keys = [...groups.keys()].sort((a, b) => {
+        const ai = GROUP_ORDER.indexOf(a);
+        const bi = GROUP_ORDER.indexOf(b);
+        return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi) || a.localeCompare(b);
+      });
+      for (const key of keys) {
+        const items = groups.get(key);
+        if (!query && key === "Custom" && !customOpen) {
+          const toggle = el("button", "expand", "Custom · " + items.length + " pair — aç");
+          toggle.type = "button";
+          toggle.addEventListener("click", () => {
+            customOpen = true;
+            renderPairs();
+          });
+          pairList.append(toggle);
+          continue;
+        }
+        pairList.append(el("div", "group-label", key + " · " + items.length));
+        for (const pair of items) pairList.append(pairRow(pair));
+      }
+    }
+
+    function pairRow(pair) {
+      const button = el("button", "pair-row" + (pair.mint === selectedMint ? " on" : ""));
+      button.type = "button";
+      const left = el("span", "", pair.symbol + " · " + (pair.name || "—"));
+      const where = (pair.sources || []).map((source) => (PLATFORM[source.platform] || source.platform) + " " + (source.category || "")).join(", ");
+      const right = el("small", "", (where ? where + " · " : "") + shortMint(pair.mint));
+      button.append(left, right);
+      button.addEventListener("click", () => choose(pair.mint));
+      return button;
+    }
+
+    function choose(mint) {
+      selectedMint = mint;
+      panel.hidden = true;
+      paintPairButton();
+      if (hasSearchText()) search();
+    }
+
+    function tickerBoxValue() {
+      return document.getElementById("ticker-q").value.trim();
+    }
+
+    function titleBoxValue() {
+      return document.getElementById("title-q").value.trim();
+    }
+
+    function usingPairBoxes() {
+      return Boolean(tickerBoxValue() || titleBoxValue());
+    }
+
+    function hasSearchText() {
+      return Boolean(q.value.trim() || usingPairBoxes());
+    }
+
+    function clockOnDay(dateValue, timeValue, end) {
+      if (!dateValue) return null;
+      const whole = end ? "T23:59:59.999" : "T00:00:00.000";
+      const match = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/.exec(timeValue || "");
+      const stamp = match
+        ? "T" + match[1] + ":" + match[2] + (end ? ":59.999" : ":00.000")
+        : whole;
+      const ms = new Date(dateValue + stamp).getTime();
+      if (Number.isFinite(ms)) return ms;
+      const fallback = new Date(dateValue + whole).getTime();
+      return Number.isFinite(fallback) ? fallback : null;
+    }
+
+    function dateWindow() {
+      const fromValue = document.getElementById("date-from").value;
+      const toValue = document.getElementById("date-to").value;
+      if (!fromValue && !toValue) return null;
+      const start = clockOnDay(fromValue, document.getElementById("time-from").value, false);
+      const end = clockOnDay(toValue, document.getElementById("time-to").value, true);
+      if (start == null && end == null) return null;
+      return { start, end };
+    }
+
+    function createdInWindow(row, window) {
+      if (!window) return true;
+      if (typeof row.createdAt !== "number") return false;
+      if (window.start != null && row.createdAt < window.start) return false;
+      if (window.end != null && row.createdAt > window.end) return false;
+      return true;
+    }
+
+    function xQuery() {
+      return (document.getElementById("x-account").value || "").trim().replace(/^@+/, "");
+    }
+
+    function xNeedles(share) {
+      if (!share || share.kind !== "x") return [];
+      const found = [];
+      const label = /^X @([A-Za-z0-9_]{1,15})$/.exec(String(share.label || ""));
+      if (label) found.push(label[1]);
+      if (typeof share.handle === "string" && /^[A-Za-z0-9_]{1,15}$/.test(share.handle)) found.push(share.handle);
+      if (share.userId != null && /^\d{1,20}$/.test(String(share.userId))) found.push(String(share.userId));
+      const href = safeUrl(share.url);
+      if (href) {
+        try {
+          const parsed = new URL(href);
+          const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
+          if (host === "x.com" || host === "twitter.com") {
+            const parts = parsed.pathname.replace(/^\/+/, "").split("/").filter(Boolean);
+            if (parts[0] === "i" && parts[1] === "user" && /^\d{1,20}$/.test(parts[2] || "")) found.push(parts[2]);
+            else if (parts[0] && /^[A-Za-z0-9_]{1,15}$/.test(parts[0]) && !/^(i|intent|share|home|search|explore|settings|login|signup)$/i.test(parts[0])) found.push(parts[0]);
+          }
+        } catch (error) {}
+      }
+      return found;
+    }
+
+    function rowHasXAccount(row, query) {
+      const needle = query.toLowerCase();
+      return (row.shares || []).some((share) => xNeedles(share).some((item) => item.toLowerCase() === needle));
+    }
+
+    function baseRows(body) {
+      let rows = body.rows || [];
+      if (feeFilters.size) {
+        rows = rows.filter((row) => (row.shares || []).some((share) => feeFilters.has(share.kind)));
+      }
+      const account = xQuery();
+      if (account) rows = rows.filter((row) => rowHasXAccount(row, account));
+      if (selectedCharity) {
+        rows = rows.filter((row) => (row.charities || []).some((item) => item.id === selectedCharity.id));
+      }
+      const window = dateWindow();
+      if (window) rows = rows.filter((row) => createdInWindow(row, window));
+      return rows;
+    }
+
+    function visibleRows(body) {
+      const rows = baseRows(body);
+      if (!photoMatches) return rows;
+      return rows.filter((row) => photoMatches.has(row.mint));
+    }
+
+    function renderResults(body) {
+      lastBody = body;
+      const rows = visibleRows(body);
+      results.replaceChildren();
+      const notes = [];
+      if (body.message) notes.push(body.message);
+      if (body.warnings?.length) notes.push(body.warnings.join(" "));
+      if (body.truncated && body.oldestProven) {
+        notes.push("Listenin tamamı değil. En eski rozeti gerçek ilk coin. Daha yeni coinlerin bir kısmı dışarıda kalmış olabilir.");
+      } else if (body.truncated) {
+        notes.push("Listenin tamamı değil. En eski rozeti sadece taranan aralıktaki en eski coini gösterir.");
+      }
+      const narrowed = baseRows(body);
+      const dateOn = Boolean(dateWindow());
+      const xOn = Boolean(xQuery());
+      const hiddenByFilter = Boolean(body.rows?.length) && !narrowed.length && (feeFilters.size || selectedCharity || dateOn || xOn);
+      const hiddenByPhoto = Boolean(photoMatches) && narrowed.length > 0 && !rows.length;
+      if (photoNote) notes.push(photoNote);
+      if (!rows.length && !body.message) {
+        if (dateOn && !selectedCharity && !feeFilters.size && !xOn && hiddenByFilter) notes.push("Bu tarih aralığında coin yok.");
+        else if (selectedCharity && feeFilters.size && !dateOn && !xOn && hiddenByFilter) notes.push("Bu charity ve ödül filtresinde coin yok.");
+        else if (selectedCharity && !feeFilters.size && !dateOn && !xOn && hiddenByFilter) notes.push("Bu charity filtresinde coin yok.");
+        else if (feeFilters.size && !selectedCharity && !dateOn && !xOn && hiddenByFilter) notes.push("Bu ödül filtresinde coin yok.");
+        else if (xOn && !dateOn && !selectedCharity && !feeFilters.size && hiddenByFilter) notes.push("Bu X hesabında coin yok.");
+        else if (hiddenByFilter) notes.push("Bu filtrelerde coin yok.");
+        else if (hiddenByPhoto) notes.push("Bu fotoğrafa uyan coin yok.");
+        else if (body.truncated) notes.push("Taranan aralıkta bu ticker yok. Kaynak daha fazla sonuç veriyor; eşleşme daha derinde olabilir.");
+        else notes.push("Bu ticker yok.");
+      }
+      if (rows.length) notes.unshift(rows.length + " coin");
+      setStatus(notes.join(" "), !body.warnings?.length && !body.truncated && !hiddenByFilter);
+      results.classList.remove("in");
+      for (const row of rows) results.append(resultRow(row));
+      void results.offsetWidth;
+      results.classList.add("in");
+    }
+
+    function dropPhotoMatches() {
+      photoSeq += 1;
+      photoMatches = null;
+      photoNote = "";
+    }
+
+    function imageUrls(row) {
+      return (row.images?.length ? row.images : [row.image]).map(safeUrl).filter(Boolean);
+    }
+
+    function hamming(left, right) {
+      let distance = 0;
+      for (let i = 0; i < left.length; i++) {
+        let bits = parseInt(left[i], 16) ^ parseInt(right[i], 16);
+        while (bits) {
+          distance += bits & 1;
+          bits >>= 1;
+        }
+      }
+      return distance;
+    }
+
+    function colorDistance(left, right) {
+      let total = 0;
+      for (let i = 0; i < left.length; i++) total += Math.abs(left[i] - right[i]);
+      return total / left.length;
+    }
+
+    function gray(data, offset) {
+      return data[offset] * 0.299 + data[offset + 1] * 0.587 + data[offset + 2] * 0.114;
+    }
+
+    async function dHashBlob(blob) {
+      const bitmap = await createImageBitmap(blob);
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 16;
+        canvas.height = 16;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        ctx.drawImage(bitmap, 0, 0, 16, 16);
+        const data = ctx.getImageData(0, 0, 16, 16).data;
+        let hex = "";
+        for (let y = 0; y < 8; y++) {
+          for (let x = 0; x < 8; x += 4) {
+            let nibble = 0;
+            for (let bit = 0; bit < 4; bit++) {
+              const px = x + bit;
+              const left = gray(data, (y * 16 + px) * 4);
+              const right = gray(data, (y * 16 + px + 1) * 4);
+              if (left > right) nibble |= 8 >> bit;
+            }
+            hex += nibble.toString(16);
+          }
+        }
+        const color = [];
+        for (let by = 0; by < 4; by++) {
+          for (let bx = 0; bx < 4; bx++) {
+            let r = 0;
+            let g = 0;
+            let b = 0;
+            for (let y = 0; y < 4; y++) {
+              for (let x = 0; x < 4; x++) {
+                const offset = ((by * 4 + y) * 16 + (bx * 4 + x)) * 4;
+                r += data[offset];
+                g += data[offset + 1];
+                b += data[offset + 2];
+              }
+            }
+            color.push(Math.round(r / 16), Math.round(g / 16), Math.round(b / 16));
+          }
+        }
+        return { hash: hex, color };
+      } finally {
+        bitmap.close();
+      }
+    }
+
+    async function hashUrl(url) {
+      if (imageHashCache.has(url)) return imageHashCache.get(url);
+      const response = await fetch("/api/image?url=" + encodeURIComponent(url));
+      if (!response.ok) return "";
+      const hash = await dHashBlob(await response.blob());
+      if (hash?.hash) {
+        imageHashCache.set(url, hash);
+        if (imageHashCache.size > 2000) imageHashCache.delete(imageHashCache.keys().next().value);
+      }
+      return hash;
+    }
+
+    async function hashRow(row) {
+      for (const url of imageUrls(row)) {
+        try {
+          const hash = await hashUrl(url);
+          if (hash?.hash) return { hash: hash.hash, color: hash.color, url };
+        } catch (error) {}
+      }
+      return null;
+    }
+
+    function blobToDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    function paintPhoto() {
+      const preview = document.getElementById("photo-preview");
+      const clear = document.getElementById("photo-clear");
+      if (!photoSample || !photoObjectUrl) {
+        preview.hidden = true;
+        preview.removeAttribute("src");
+        clear.hidden = true;
+        return;
+      }
+      preview.src = photoObjectUrl;
+      preview.hidden = false;
+      clear.hidden = false;
+    }
+
+    async function rememberPhoto(blob, label, quiet) {
+      if (!blob || !String(blob.type || "").startsWith("image/")) return false;
+      if (blob.size > 6000000) {
+        if (!quiet) {
+          photoNote = "Resim büyük.";
+          if (lastBody) renderResults(lastBody);
+        }
+        return false;
+      }
+      let hash = "";
+      try {
+        hash = await dHashBlob(blob);
+      } catch (error) {
+        hash = "";
+      }
+      if (!hash?.hash) {
+        if (!quiet) {
+          photoNote = "Bu resim okunamadı.";
+          if (lastBody) renderResults(lastBody);
+        }
+        return false;
+      }
+      const dataUrl = await blobToDataUrl(blob);
+      if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl);
+      photoObjectUrl = URL.createObjectURL(blob);
+      photoSample = { hash: hash.hash, color: hash.color, dataUrl, label };
+      paintPhoto();
+      schedulePhoto();
+      return true;
+    }
+
+    async function setPhotoFromUrl(urls, label) {
+      const list = (Array.isArray(urls) ? urls : [urls]).filter(Boolean);
+      const token = ++photoSeq;
+      photoNote = "Fotoğraf alınıyor…";
+      if (lastBody) renderResults(lastBody);
+      for (const url of list) {
+        if (token !== photoSeq) return;
+        try {
+          const response = await fetch("/api/image?url=" + encodeURIComponent(url));
+          if (!response.ok) continue;
+          if (token !== photoSeq) return;
+          if (await rememberPhoto(await response.blob(), label, true)) return;
+        } catch (error) {}
+      }
+      if (token !== photoSeq) return;
+      photoNote = "Bu resim okunamadı.";
+      if (lastBody) renderResults(lastBody);
+    }
+
+    async function mapPool(items, limit, fn) {
+      let cursor = 0;
+      async function worker() {
+        while (cursor < items.length) {
+          const index = cursor;
+          cursor += 1;
+          await fn(items[index], index);
+        }
+      }
+      const width = Math.min(limit, items.length);
+      await Promise.all(Array.from({ length: width }, () => worker()));
+    }
+
+    function schedulePhoto() {
+      const token = ++photoSeq;
+      if (!photoSample || !lastBody) {
+        photoMatches = null;
+        photoNote = "";
+        if (lastBody) renderResults(lastBody);
+        return;
+      }
+      photoMatches = null;
+      photoNote = "Fotoğraflar karşılaştırılıyor…";
+      renderResults(lastBody);
+      const rows = baseRows(lastBody).filter((row) => row.mint && imageUrls(row).length);
+      const matched = new Set();
+      const hashedUrl = new Map();
+      mapPool(rows, 4, async (row) => {
+        if (token !== photoSeq) return;
+        const hash = await hashRow(row);
+        if (token !== photoSeq || !hash?.hash) return;
+        hashedUrl.set(row.mint, hash.url);
+        const sameShape = hamming(hash.hash, photoSample.hash) <= NEAR_DISTANCE;
+        const sameColor = colorDistance(hash.color, photoSample.color) <= NEAR_COLOR;
+        if (sameShape && sameColor) matched.add(row.mint);
+      }).then(async () => {
+        if (token !== photoSeq) return;
+        photoMatches = matched;
+        photoNote = "";
+        renderResults(lastBody);
+        if (document.getElementById("photo-similar").getAttribute("aria-pressed") !== "true") return;
+        const rest = rows.filter((row) => !matched.has(row.mint) && hashedUrl.has(row.mint));
+        if (!rest.length) return;
+        photoNote = "Benzerler bakılıyor…";
+        renderResults(lastBody);
+        try {
+          for (let start = 0; start < rest.length; start += 12) {
+            if (token !== photoSeq) return;
+            const slice = rest.slice(start, start + 12);
+            photoNote = "Benzerler bakılıyor… " + Math.min(start + slice.length, rest.length) + "/" + rest.length;
+            renderResults(lastBody);
+            const urls = slice.map((row) => hashedUrl.get(row.mint));
+            const response = await fetch("/api/photo-similar", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ sample: photoSample.dataUrl, urls }),
+            });
+            const body = await response.json();
+            if (!response.ok) throw new Error(body.error || "Benzerlik modeli açılamadı");
+            if (token !== photoSeq) return;
+            const threshold = Number(body.threshold) || 0.8;
+            (body.scores || []).forEach((score, index) => {
+              if (Number.isFinite(score) && score >= threshold) matched.add(slice[index].mint);
+            });
+            photoMatches = new Set(matched);
+            renderResults(lastBody);
+          }
+          if (token !== photoSeq) return;
+          photoNote = "";
+          renderResults(lastBody);
+        } catch (error) {
+          if (token !== photoSeq) return;
+          photoNote = "Benzerlik modeli açılamadı. Yakın kopyalar duruyor.";
+          renderResults(lastBody);
+        }
+      }).catch((error) => {
+        if (token !== photoSeq) return;
+        photoNote = "Fotoğraflar karşılaştırılamadı.";
+        photoMatches = matched;
+        console.log(photoNote, error);
+        renderResults(lastBody);
+      });
+    }
+
+    function sharePercent(bps) {
+      const text = (Number(bps) / 100).toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
+      return text + "%";
+    }
+
+    async function copyMint(mint) {
+      try {
+        await navigator.clipboard.writeText(mint);
+        return true;
+      } catch (error) {
+        const area = document.createElement("textarea");
+        area.value = mint;
+        document.body.append(area);
+        area.select();
+        let ok = false;
+        try { ok = document.execCommand("copy"); } catch (copyError) { ok = false; }
+        area.remove();
+        return ok;
+      }
+    }
+
+    function coinLink(label, href, className) {
+      const link = el("a", className, label);
+      link.href = href;
+      link.target = "_blank";
+      link.rel = "noreferrer";
+      return link;
+    }
+
+    function feeLabel(share, many) {
+      const percent = many || (share.bps && share.bps !== 10000) ? " · " + sharePercent(share.bps) : "";
+      if (share.kind === "cashback") return "cashback";
+      if (share.kind === "creator") return "creator " + (share.label || "") + percent;
+      return (share.label || "—") + percent;
+    }
+
+    function feeNode(share, many) {
+      const text = feeLabel(share, many);
+      const href = share.kind === "github" || share.kind === "x" ? safeUrl(share.url) : "";
+      const node = href
+        ? coinLink(text, href, many ? "chip" : "attack-link")
+        : el(many ? "span" : "div", many ? "chip" : "value", text);
+      if (share.address) node.title = share.address;
+      return node;
+    }
+
+    function appendFee(parent, row) {
+      const shares = row.shares || [];
+      if (!shares.length) return;
+      const fee = el("div", "attack");
+      fee.append(el("div", "label", "Ödül alan"));
+      if (shares.length === 1) {
+        const share = shares[0];
+        if (share.kind === "cashback") fee.append(el("div", "value", "cashback"));
+        else if (share.kind === "creator") {
+          fee.append(el("div", "value", "creator"));
+          const detail = el("div", "detail", share.label || "");
+          if (share.address) detail.title = share.address;
+          fee.append(detail);
+        } else fee.append(feeNode(share, false));
+      } else {
+        fee.append(el("div", "value", String(shares.length)));
+        const chips = el("div", "chips");
+        for (const share of shares) chips.append(feeNode(share, true));
+        fee.append(chips);
+      }
+      parent.append(fee);
+    }
+
+    function charityText(item, list) {
+      if (list.length < 2) return item.name;
+      const sum = list.reduce((total, entry) => total + (Number(entry.weight) || 0), 0);
+      if (!sum) return item.name;
+      const percent = ((Number(item.weight) || 0) / sum * 100).toFixed(1).replace(/\.0$/, "");
+      return item.name + " · " + percent + "%";
+    }
+
+    function appendCharity(parent, row) {
+      if (!row.charity) return;
+      const block = el("div", "attack");
+      block.append(el("div", "label", "Charity"));
+      block.append(el("div", "value", "charity"));
+      const list = Array.isArray(row.charities) ? row.charities.filter((item) => item && item.name) : [];
+      if (list.length === 1) {
+        block.append(el("div", "detail", list[0].name));
+      } else if (list.length > 1) {
+        const chips = el("div", "chips");
+        for (const item of list) {
+          const hit = selectedCharity && item.id === selectedCharity.id ? " hit" : "";
+          chips.append(el("span", "chip" + hit, charityText(item, list)));
+        }
+        block.append(chips);
+      }
+      parent.append(block);
+    }
+
+    function frameParts(row) {
+      const parts = [row.platform === "stonkfun"
+        ? { color: "#1a3d7c", label: "StonkFun", ink: "#f4f7ff" }
+        : row.platform === "otc"
+          ? { color: "#ffffff", label: "OTC", ink: "#1c160c" }
+          : { color: "#159447", label: "Pump.fun", ink: "#f4fff7" }];
+      const shares = row.shares || [];
+      if (shares.some((share) => share.kind === "cashback")) parts.push({ color: "#f0c400", label: "cashback", ink: "#1c160c" });
+      if (shares.some((share) => share.kind === "creator")) parts.push({ color: "#111111", label: "creator", ink: "#f6f1e4" });
+      const github = shares.some((share) => share.kind === "github");
+      const ex = shares.some((share) => share.kind === "x");
+      if (github || ex) {
+        parts.push({ color: "#ff4d8d", label: github && ex ? "GitHub / X" : github ? "GitHub" : "X", ink: "#1c160c" });
+      }
+      if (row.quoteMint && !isSolMint(row.quoteMint)) parts.push({ color: "#e11d2e", label: "pair", ink: "#fff5f5" });
+      return parts;
+    }
+
+    function frameBackground(parts) {
+      if (parts.length === 1) return parts[0].color;
+      const step = 100 / parts.length;
+      const stops = parts.map((part, index) => part.color + " " + (index * step) + "% " + ((index + 1) * step) + "%");
+      return "linear-gradient(90deg, " + stops.join(", ") + ")";
+    }
+
+    function frameMark(part, className, width, left) {
+      const mark = el("span", className, part.label);
+      mark.style.color = part.ink;
+      if (width) {
+        mark.style.width = width;
+        mark.style.left = left;
+      }
+      return mark;
+    }
+
+    function resultRow(row) {
+      const parts = frameParts(row);
+      const item = el("li", "card " + (row.platform || ""));
+      item.style.background = frameBackground(parts);
+      const inner = el("div", "card-inner");
+      const top = el("div", "card-top");
+      const title = el("div", "card-title");
+      title.append(el("div", "card-name", row.name || row.symbol || "—"));
+      if (row.symbol && row.name) {
+        const ticker = el("div", "card-ticker");
+        ticker.append(el("span", "card-ticker-label", "ticker"));
+        ticker.append(el("span", "card-ticker-symbol", row.symbol));
+        title.append(ticker);
+      }
+      top.append(title);
+      const hp = el("div", "hp", "MC");
+      hp.append(el("b", "", money(row.marketCapUsd)));
+      top.append(hp);
+      inner.append(top);
+      inner.append(el("div", "stage", PLATFORM[row.platform] || row.platform || ""));
+      appendCharity(inner, row);
+
+      const art = el("div", "art");
+      const urls = (row.images?.length ? row.images : [row.image]).map(safeUrl).filter(Boolean);
+      if (urls.length) {
+        const img = el("img");
+        img.alt = "";
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.referrerPolicy = "no-referrer";
+        img.classList.add("waiting");
+        const showImage = () => img.classList.remove("waiting");
+        img.addEventListener("load", showImage);
+        let index = 0;
+        img.addEventListener("error", () => {
+          index += 1;
+          if (index < urls.length) img.src = urls[index];
+          else img.replaceWith(el("div", "fallback", (row.symbol || "?").slice(0, 1)));
+        });
+        img.src = urls[0];
+        if (img.complete && img.naturalWidth) showImage();
+        art.append(img);
+      } else {
+        art.append(el("div", "fallback", (row.symbol || "?").slice(0, 1)));
+      }
+      if (row.first) art.append(el("div", "stamp", row.firstLabel || "ilk"));
+      if (urls.length) {
+        art.title = "Bu fotoğrafı örnek al";
+        art.addEventListener("click", (event) => {
+          if (event.target.closest(".stamp")) return;
+          setPhotoFromUrl(imageUrls(row), row.symbol || row.name || "kart");
+        });
+      }
+      inner.append(art);
+
+      const pair = el("div", "attack");
+      pair.append(el("div", "label", "Pair"));
+      pair.append(el("div", "value", row.quoteSymbol || "—"));
+      if (row.quoteMint) pair.append(el("div", "detail", shortMint(row.quoteMint)));
+      inner.append(pair);
+
+      if (row.rewards?.length) {
+        const reward = el("div", "attack");
+        reward.append(el("div", "label", "Ödül"));
+        reward.append(el("div", "value", String(row.rewards.length)));
+        const chips = el("div", "chips");
+        for (const itemReward of row.rewards) chips.append(el("span", "chip" + (itemReward.matched ? " hit" : ""), itemReward.symbol));
+        reward.append(chips);
+        inner.append(reward);
+      }
+
+      appendFee(inner, row);
+
+      const foot = el("div", "card-foot");
+      const meta = el("div", "foot-meta");
+      const mintBtn = el("button", "mint-copy", shortMint(row.mint));
+      mintBtn.type = "button";
+      mintBtn.title = row.mint ? "Sözleşme adresini kopyala: " + row.mint : "Sözleşme adresi yok";
+      mintBtn.setAttribute("aria-label", "Sözleşme adresini kopyala");
+      mintBtn.addEventListener("click", async () => {
+        if (!row.mint) return;
+        const copied = await copyMint(row.mint);
+        if (!copied) return;
+        mintBtn.textContent = "kopyalandı";
+        setTimeout(() => { mintBtn.textContent = shortMint(row.mint); }, 900);
+      });
+      meta.append(mintBtn);
+      meta.append(el("span", "", when(row.createdAt)));
+      foot.append(meta);
+      const jumps = el("div", "jumps");
+      if (row.mint && !String(row.mint).startsWith("0x")) {
+        jumps.append(coinLink("Axiom", "https://axiom.trade/meme/" + encodeURIComponent(row.mint) + "?chain=sol", "axiom"));
+        jumps.append(coinLink("PF", "https://pump.fun/coin/" + encodeURIComponent(row.mint), "pf"));
+      }
+      const href = safeUrl(row.url);
+      if (href) jumps.append(coinLink("aç", href, ""));
+      if (jumps.childElementCount) foot.append(jumps);
+      inner.append(foot);
+      item.append(inner);
+      const marks = el("div", "frame-marks");
+      const slice = (100 / parts.length) + "%";
+      parts.forEach((part, index) => {
+        const left = (index * 100 / parts.length) + "%";
+        marks.append(frameMark(part, "frame-mark", slice, left));
+        marks.append(frameMark(part, "frame-mark bottom", slice, left));
+      });
+      marks.append(frameMark(parts[0], "frame-mark side"));
+      marks.append(frameMark(parts[parts.length - 1], "frame-mark side right"));
+      item.append(marks);
+      return item;
+    }
+
+    async function search() {
+      const query = q.value.trim();
+      const tickerText = tickerBoxValue();
+      const titleText = titleBoxValue();
+      const paired = Boolean(tickerText || titleText);
+      if (controller) controller.abort();
+      if (!paired && !query) {
+        controller = null;
+        go.disabled = false;
+        refreshBtn.classList.remove("busy");
+        dropPhotoMatches();
+        renderResults({ rows: [], message: "Bir ticker veya isim yaz." });
+        return;
+      }
+      dropPhotoMatches();
+      controller = new AbortController();
+      const signal = controller.signal;
+      go.disabled = true;
+      refreshBtn.classList.add("busy");
+      setStatus(sortValue() === "oldest" && selectedMint ? "Aranıyor… En eski + pair taraması uzun sürebilir." : "Aranıyor…", true);
+      results.replaceChildren();
+      const params = new URLSearchParams({ sort: sortValue(), platforms: [...platforms].join(",") });
+      if (paired) {
+        if (tickerText) params.set("ticker", tickerText);
+        if (titleText) params.set("title", titleText);
+      } else {
+        params.set("q", query);
+        const field = document.getElementById("field").value;
+        if (field === "ticker" || field === "title") params.set("field", field);
+      }
+      if (document.getElementById("near").getAttribute("aria-pressed") === "true") params.set("near", "1");
+      if (document.getElementById("similar").getAttribute("aria-pressed") === "true") params.set("similar", "1");
+      if (document.getElementById("case").getAttribute("aria-pressed") === "true") params.set("case", "1");
+      if (selectedMint) params.set("quoteMint", selectedMint);
+      try {
+        const response = await fetch("/api/search?" + params, { signal });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Arama başarısız");
+        renderResults(body);
+        if (photoSample) schedulePhoto();
+      } catch (error) {
+        if (error.name === "AbortError") return;
+        setStatus(error.message);
+      } finally {
+        if (!signal.aborted) {
+          go.disabled = false;
+          refreshBtn.classList.remove("busy");
+        }
+      }
+    }
+
+    function goHome() {
+      if (controller) controller.abort();
+      controller = null;
+      if (charityController) charityController.abort();
+      charityController = null;
+      clearTimeout(charityTimer);
+      go.disabled = false;
+      refreshBtn.classList.remove("busy");
+      q.value = "";
+      document.getElementById("ticker-q").value = "";
+      document.getElementById("title-q").value = "";
+      const field = document.getElementById("field");
+      field.value = "";
+      for (const item of document.getElementById("field-seg").querySelectorAll("button")) {
+        item.setAttribute("aria-pressed", item.dataset.field === "" ? "true" : "false");
+      }
+      for (const id of ["near", "similar", "case"]) {
+        document.getElementById(id).setAttribute("aria-pressed", "false");
+      }
+      platforms.clear();
+      for (const name of ["stonkfun", "otc", "pump"]) platforms.add(name);
+      for (const button of document.getElementById("platforms").querySelectorAll("button")) {
+        button.setAttribute("aria-pressed", "true");
+      }
+      selectedMint = "";
+      customOpen = false;
+      pairQ.value = "";
+      panel.hidden = true;
+      paintPairButton();
+      selectedCharity = null;
+      charityQ.value = "";
+      charityPanel.hidden = true;
+      charityList.replaceChildren();
+      paintCharityButton();
+      for (const button of document.getElementById("sort").querySelectorAll("button")) {
+        button.setAttribute("aria-pressed", button.dataset.sort === "newest" ? "true" : "false");
+      }
+      feeFilters.clear();
+      for (const button of document.getElementById("fee-filters").querySelectorAll("button")) {
+        button.setAttribute("aria-pressed", "false");
+      }
+      clearTimeout(xTimer);
+      document.getElementById("x-account").value = "";
+      document.getElementById("date-from").value = "";
+      document.getElementById("date-to").value = "";
+      document.getElementById("time-from").value = "";
+      document.getElementById("time-to").value = "";
+      photoSample = null;
+      if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl);
+      photoObjectUrl = "";
+      document.getElementById("photo-file").value = "";
+      document.getElementById("photo-similar").setAttribute("aria-pressed", "false");
+      paintPhoto();
+      dropPhotoMatches();
+      lastBody = null;
+      results.replaceChildren();
+      results.classList.remove("in");
+      setStatus("", true);
+      window.scrollTo(0, 0);
+      q.focus();
+    }
+
+    refreshBtn.addEventListener("click", () => {
+      if (hasSearchText()) search();
+      else location.reload();
+    });
+    document.getElementById("home").addEventListener("click", goHome);
+    const themeButton = document.getElementById("theme");
+    function syncThemeButton() {
+      const on = document.documentElement.classList.contains("theme-win98");
+      const label = on ? "Şimdiki görünüme dön" : "Eski Windows görünümü";
+      themeButton.setAttribute("aria-pressed", on ? "true" : "false");
+      themeButton.title = label;
+      themeButton.setAttribute("aria-label", label);
+    }
+    themeButton.addEventListener("click", () => {
+      const on = !document.documentElement.classList.contains("theme-win98");
+      document.documentElement.classList.toggle("theme-win98", on);
+      try {
+        if (on) localStorage.setItem("pair-theme", "win98");
+        else localStorage.removeItem("pair-theme");
+      } catch (error) {}
+      syncThemeButton();
+    });
+    syncThemeButton();
+
+    document.getElementById("near").addEventListener("click", () => {
+      const button = document.getElementById("near");
+      const on = button.getAttribute("aria-pressed") !== "true";
+      button.setAttribute("aria-pressed", on ? "true" : "false");
+      if (hasSearchText()) search();
+    });
+
+    document.getElementById("similar").addEventListener("click", () => {
+      const button = document.getElementById("similar");
+      const on = button.getAttribute("aria-pressed") !== "true";
+      button.setAttribute("aria-pressed", on ? "true" : "false");
+      if (hasSearchText()) search();
+    });
+
+    document.getElementById("case").addEventListener("click", () => {
+      const button = document.getElementById("case");
+      const on = button.getAttribute("aria-pressed") !== "true";
+      button.setAttribute("aria-pressed", on ? "true" : "false");
+      if (hasSearchText()) search();
+    });
+
+    document.getElementById("field").addEventListener("change", () => {
+      if (q.value.trim() && !usingPairBoxes()) search();
+    });
+
+    document.getElementById("field-seg").addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      const field = document.getElementById("field");
+      field.value = button.dataset.field;
+      for (const item of event.currentTarget.querySelectorAll("button")) {
+        item.setAttribute("aria-pressed", item === button ? "true" : "false");
+      }
+      field.dispatchEvent(new Event("change"));
+    });
+
+    function applyDateFilter() {
+      if (photoSample) schedulePhoto();
+      else if (lastBody) renderResults(lastBody);
+    }
+    document.getElementById("date-from").addEventListener("change", applyDateFilter);
+    document.getElementById("date-to").addEventListener("change", applyDateFilter);
+    document.getElementById("time-from").addEventListener("change", applyDateFilter);
+    document.getElementById("time-to").addEventListener("change", applyDateFilter);
+
+    function applyXFilter() {
+      if (photoSample) schedulePhoto();
+      else if (lastBody) renderResults(lastBody);
+    }
+    const xAccount = document.getElementById("x-account");
+    xAccount.addEventListener("input", () => {
+      clearTimeout(xTimer);
+      xTimer = setTimeout(applyXFilter, 250);
+    });
+    xAccount.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      clearTimeout(xTimer);
+      applyXFilter();
+    });
+
+    document.getElementById("fee-filters").addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      const kind = button.dataset.fee;
+      if (feeFilters.has(kind)) feeFilters.delete(kind);
+      else feeFilters.add(kind);
+      button.setAttribute("aria-pressed", feeFilters.has(kind) ? "true" : "false");
+      if (photoSample) schedulePhoto();
+      else if (lastBody) renderResults(lastBody);
+    });
+
+    document.getElementById("photo-pick").addEventListener("click", () => {
+      document.getElementById("photo-file").click();
+    });
+    document.getElementById("photo-file").addEventListener("change", () => {
+      const input = document.getElementById("photo-file");
+      const file = input.files && input.files[0];
+      input.value = "";
+      if (file) rememberPhoto(file, "dosya");
+    });
+    document.getElementById("photo-clear").addEventListener("click", () => {
+      photoSample = null;
+      if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl);
+      photoObjectUrl = "";
+      paintPhoto();
+      dropPhotoMatches();
+      if (lastBody) renderResults(lastBody);
+    });
+    document.getElementById("photo-similar").addEventListener("click", (event) => {
+      const button = event.currentTarget;
+      const on = button.getAttribute("aria-pressed") !== "true";
+      button.setAttribute("aria-pressed", on ? "true" : "false");
+      if (photoSample) schedulePhoto();
+    });
+    const photoRow = document.getElementById("photo-row");
+    photoRow.addEventListener("dragover", (event) => event.preventDefault());
+    photoRow.addEventListener("drop", (event) => {
+      event.preventDefault();
+      const file = [...event.dataTransfer.files].find((item) => String(item.type || "").startsWith("image/"));
+      if (file) rememberPhoto(file, "dosya");
+    });
+    window.addEventListener("paste", (event) => {
+      const target = event.target;
+      if (target && target.closest && target.closest("input, textarea")) return;
+      const file = [...(event.clipboardData?.files || [])].find((item) => String(item.type || "").startsWith("image/"));
+      if (!file) return;
+      event.preventDefault();
+      rememberPhoto(file, "pano");
+    });
+
+    document.getElementById("platforms").addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      const name = button.dataset.platform;
+      if (platforms.has(name) && platforms.size === 1) return;
+      if (platforms.has(name)) platforms.delete(name);
+      else platforms.add(name);
+      button.setAttribute("aria-pressed", platforms.has(name) ? "true" : "false");
+      if (hasSearchText()) search();
+    });
+
+    pairBtn.addEventListener("click", () => {
+      panel.hidden = !panel.hidden;
+      if (!panel.hidden) {
+        charityPanel.hidden = true;
+        paintCharityButton();
+        renderPairs();
+        pairQ.focus();
+      }
+      paintPairButton();
+    });
+    pairQ.addEventListener("input", renderPairs);
+    document.getElementById("sort").addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button || button.getAttribute("aria-pressed") === "true") return;
+      for (const item of button.parentElement.querySelectorAll("button")) {
+        item.setAttribute("aria-pressed", item === button ? "true" : "false");
+      }
+      if (hasSearchText()) search();
+    });
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (document.activeElement === pairQ) {
+        const mint = resolveTypedMint(pairQ.value);
+        if (mint) {
+          choose(mint);
+          return;
+        }
+      }
+      if (document.activeElement === charityQ) return;
+      if (document.activeElement && document.activeElement.id === "x-account") return;
+      search();
+    });
+
+    function paintCharityButton() {
+      charityBtn.textContent = selectedCharity ? "Charity: " + selectedCharity.name : "Charity: tümü";
+      charityBtn.title = selectedCharity ? selectedCharity.name : "Charity filtresi";
+      charityBtn.setAttribute("aria-expanded", charityPanel.hidden ? "false" : "true");
+    }
+
+    function chooseCharity(charity) {
+      selectedCharity = charity && charity.id && charity.name ? { id: charity.id, name: charity.name } : null;
+      charityPanel.hidden = true;
+      paintCharityButton();
+      if (photoSample) schedulePhoto();
+      else if (lastBody) renderResults(lastBody);
+    }
+
+    async function renderCharities() {
+      charityList.replaceChildren();
+      const clear = el("button", "pair-row" + (selectedCharity ? "" : " on"), "Tüm coinler");
+      clear.type = "button";
+      clear.addEventListener("click", () => chooseCharity(null));
+      charityList.append(clear);
+      const query = charityQ.value.trim();
+      if (query.length < 2) {
+        if (selectedCharity) {
+          const current = el("button", "pair-row on");
+          current.type = "button";
+          current.append(el("span", "", selectedCharity.name));
+          current.append(el("small", "", "seçili"));
+          current.addEventListener("click", () => chooseCharity(selectedCharity));
+          charityList.append(current);
+        }
+        charityList.append(el("div", "hint", "Kurum adı yaz."));
+        return;
+      }
+      const note = el("div", "hint", "Aranıyor…");
+      charityList.append(note);
+      if (charityController) charityController.abort();
+      charityController = new AbortController();
+      const signal = charityController.signal;
+      try {
+        const response = await fetch("/api/charities?q=" + encodeURIComponent(query), { signal });
+        const body = await response.json();
+        if (signal.aborted) return;
+        if (!response.ok) throw new Error(body.error || "Charity listesi gelmedi.");
+        note.remove();
+        const list = body.charities || [];
+        if (body.warning) charityList.append(el("div", "hint", body.warning));
+        if (!list.length && !body.warning) charityList.append(el("div", "hint", "Bu yazıya uyan charity yok."));
+        for (const charity of list) {
+          const button = el("button", "pair-row" + (selectedCharity && selectedCharity.id === charity.id ? " on" : ""));
+          button.type = "button";
+          button.append(el("span", "", charity.name));
+          button.addEventListener("click", () => chooseCharity({ id: charity.id, name: charity.name }));
+          charityList.append(button);
+        }
+      } catch (error) {
+        if (error.name === "AbortError") return;
+        note.textContent = "Charity listesi gelmedi.";
+      }
+    }
+
+    charityBtn.addEventListener("click", () => {
+      charityPanel.hidden = !charityPanel.hidden;
+      if (!charityPanel.hidden) {
+        panel.hidden = true;
+        paintPairButton();
+        renderCharities();
+        charityQ.focus();
+      }
+      paintCharityButton();
+    });
+    charityQ.addEventListener("input", () => {
+      clearTimeout(charityTimer);
+      charityTimer = setTimeout(renderCharities, 250);
+    });
+    paintCharityButton();
+
+    function formatUsd(value, digits) {
+      return "$" + Number(value).toLocaleString("tr-TR", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      });
+    }
+
+    function formatCap(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n) || n <= 0) return "";
+      const abs = Math.abs(n);
+      const unit = abs >= 1e9 ? [1e9, "B"] : abs >= 1e6 ? [1e6, "M"] : abs >= 1e3 ? [1e3, "K"] : [1, ""];
+      let text = (n / unit[0]).toFixed(unit[1] ? 1 : 0);
+      if (text.endsWith(".0")) text = text.slice(0, -2);
+      return "$" + text + unit[1];
+    }
+
+    function paintMove(id, dir) {
+      const node = document.getElementById(id);
+      const up = dir === "up";
+      const down = dir === "down";
+      node.hidden = !up && !down;
+      node.className = "dir" + (up ? " up" : down ? " down" : "");
+      node.textContent = up ? "↑" : down ? "↓" : "";
+      const label = up ? "Son 6 saatte yükseldi" : down ? "Son 6 saatte düştü" : "";
+      if (label) node.title = label;
+      else node.removeAttribute("title");
+    }
+
+    async function loadMarketPrices() {
+      try {
+        const response = await fetch("/api/prices");
+        const body = await response.json();
+        if (!response.ok) return;
+        if (Number.isFinite(body.ant)) document.getElementById("ant-px").textContent = formatCap(body.ant);
+        if (Number.isFinite(body.sol)) document.getElementById("sol-px").textContent = formatUsd(body.sol, 2);
+        if (Number.isFinite(body.btc)) document.getElementById("btc-px").textContent = formatUsd(body.btc, 0);
+        paintMove("sol-dir", body.solDir);
+        paintMove("btc-dir", body.btcDir);
+      } catch (error) {}
+    }
+    loadMarketPrices();
+    setInterval(loadMarketPrices, 30000);
+
+    fetch("/api/pairs")
+      .then((response) => response.json())
+      .then((body) => {
+        pairs = body.pairs || [];
+        paintPairButton();
+        if (body.warnings?.length && !lastBody) setStatus(body.warnings.join(" "));
+      })
+      .catch((error) => setStatus("Pair listesi gelmedi: " + error.message));
+    paintPairButton();
+  </script>
+</body>
+</html>
