@@ -1,0 +1,7 @@
+{
+  "name": "pair-search",
+  "private": true,
+  "dependencies": {
+    "@huggingface/transformers": "3.8.1"
+  }
+}
